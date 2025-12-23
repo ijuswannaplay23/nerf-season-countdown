@@ -34,11 +34,16 @@
   </div>
 
 <script>
-  // ===== CONFIG =====
-  // Season ends May 6, 2026 at 5:00 PM ET
-  const END = { year: 2026, month: 5, day: 8, hour: 17, minute: 0 };
-  const TZ = "America/New_York";
-  // ==================
+// ===== CONFIG =====
+// Season starts January 6, 2026 at 12:00 AM ET
+const START = { year: 2026, month: 1, day: 6, hour: 0, minute: 0 };
+
+// Season ends Friday, May 8, 2026 at 5:00 PM ET
+const END = { year: 2026, month: 5, day: 8, hour: 17, minute: 0 };
+
+const TZ = "America/New_York";
+// ==================
+
 
   function nowInTZ() {
     const now = new Date();
@@ -54,44 +59,70 @@
     return new Date(END.year, END.month-1, END.day, END.hour, END.minute, 0);
   }
 
-  function render(diffMs, end) {
-    const timeEl = document.getElementById("time");
-    const footerEl = document.getElementById("footer");
+function render(now, start, end) {
+  const timeEl = document.getElementById("time");
+  const footerEl = document.getElementById("footer");
 
-    if (diffMs <= 0) {
-      timeEl.innerHTML = `<div class="ended">🏁 Season ended.</div>`;
-    } else {
-      const totalSec = Math.floor(diffMs / 1000);
-      const days = Math.floor(totalSec / 86400);
-      const hours = Math.floor((totalSec % 86400) / 3600);
-      const mins = Math.floor((totalSec % 3600) / 60);
-      const secs = totalSec % 60;
+  // Pre-season
+  if (now < start) {
+    timeEl.innerHTML = `
+      <div class="ended">🚨 Season has not started yet</div>
+    `;
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: TZ, weekday:"long", year:"numeric", month:"short", day:"numeric"
+    });
+    footerEl.textContent = `Season begins: ${fmt.format(start)} (${TZ})`;
+    return;
+  }
 
-      timeEl.innerHTML = [
-        ["Days", days],
-        ["Hours", hours],
-        ["Minutes", mins],
-        ["Seconds", secs],
-      ].map(([label, value]) => `
-        <div class="pill">
-          <div class="num">${String(value).padStart(2,"0")}</div>
-          <div class="lbl">${label}</div>
-        </div>
-      `).join("");
-    }
-
+  // Post-season
+  if (now >= end) {
+    timeEl.innerHTML = `
+      <div class="ended">🏁 Season complete</div>
+    `;
     const fmt = new Intl.DateTimeFormat("en-US", {
       timeZone: TZ, weekday:"long", year:"numeric", month:"short", day:"numeric",
       hour:"numeric", minute:"2-digit"
     });
-    footerEl.textContent = `Ends: ${fmt.format(end)} (${TZ})`;
+    footerEl.textContent = `Season ended: ${fmt.format(end)} (${TZ})`;
+    return;
   }
 
-  function tick() {
-    const now = nowInTZ();
-    const end = endInTZ();
-    render(end.getTime() - now.getTime(), end);
-  }
+  // In-season countdown
+  const diffMs = end.getTime() - now.getTime();
+  const totalSec = Math.floor(diffMs / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+
+  timeEl.innerHTML = [
+    ["Days", days],
+    ["Hours", hours],
+    ["Minutes", mins],
+    ["Seconds", secs],
+  ].map(([label, value]) => `
+    <div class="pill">
+      <div class="num">${String(value).padStart(2,"0")}</div>
+      <div class="lbl">${label}</div>
+    </div>
+  `).join("");
+
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ, weekday:"long", year:"numeric", month:"short", day:"numeric",
+    hour:"numeric", minute:"2-digit"
+  });
+  footerEl.textContent = `Season ends: ${fmt.format(end)} (${TZ})`;
+}
+
+
+function tick() {
+  const now = nowInTZ();
+  const start = new Date(START.year, START.month-1, START.day, START.hour, START.minute, 0);
+  const end = new Date(END.year, END.month-1, END.day, END.hour, END.minute, 0);
+  render(now, start, end);
+}
+
 
   tick();
   setInterval(tick, 1000);
